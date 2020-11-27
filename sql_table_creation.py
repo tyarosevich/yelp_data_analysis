@@ -1,18 +1,25 @@
--- TABLE CREATION
+# Table creation via mysqlconnector
 
-CREATE TABLE business (
-business_id char(22) NOT NULL,
-name varchar(50) NOT NULL,
-address varchar(100) NOT NULL,
-state varchar(20),
-city varchar(20),
-is_open int,
-latitude int,
-longitude int,
-postal_code int,
-type_id int,
-PRIMARY KEY (business_id),
-FOREIGN KEY (type_id) REFERENCES type_ref (business_type_id));
+DB_NAME = 'test_db'
+
+TABLES = {}
+
+TABLES['business'] = (
+	" CREATE TABLE `business` ("
+	" `business_id` char(22) NOT NULL,"
+	" name varchar(50) NOT NULL,"
+	" address varchar(100) NOT NULL,"
+	" state varchar(20),"
+	" city varchar(20),"
+	" is_open int,"
+	" latitude int,"
+	" longitude int,"
+	" postal_code int,"
+	" type_id int,"
+	" PRIMARY KEY (`business_id`)," 
+	" FOREIGN KEY (`type_id`) REFERENCES `type_ref` (`business_type_id`)"
+	" ) ENGINE = InnoDB"
+	)
 
 
 CREATE TABLE type_ref (
