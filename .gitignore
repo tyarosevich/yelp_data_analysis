@@ -1,3 +1,4 @@
 data/
 .idea/
 project_notes.txt
+.env
