@@ -7,43 +7,48 @@ TABLES = {}
 TABLES['business'] = (
 	" CREATE TABLE `business` ("
 	" `business_id` char(22) NOT NULL,"
-	" name varchar(50) NOT NULL,"
-	" address varchar(100) NOT NULL,"
-	" state varchar(20),"
-	" city varchar(20),"
-	" is_open int,"
-	" latitude int,"
-	" longitude int,"
-	" postal_code int,"
-	" type_id int,"
+	" `name` varchar(50) NOT NULL,"
+	" `address` varchar(100) NOT NULL,"
+	" `state` varchar(20),"
+	" `city` varchar(20),"
+	" `is_open` int,"
+	" `latitude` int,"
+	" `longitude` int,"
+	" `postal_code` int,"
+	" `type_id` int,"
 	" PRIMARY KEY (`business_id`)," 
-	" FOREIGN KEY (`type_id`) REFERENCES `type_ref` (`business_type_id`)"
+	" CONSTRAINT `bus_to_bus_type` FOREIGN KEY (`type_id`) "
+	" 	REFERENCES `type_ref` (`business_type_id`)"
 	" ) ENGINE = InnoDB"
 	)
 
 
-CREATE TABLE type_ref (
-business_type_id int NOT NULL,
-business_type_name varchar(10) NOT NULL,
-PRIMARY KEY (business_type_id)
-);
+TABLES['type_ref'] = (
+	" CREATE TABLE `type_ref` ("
+	" `business_type_id` int NOT NULL,"
+	" `business_type_name` varchar(10) NOT NULL,"
+	" PRIMARY KEY (`business_type_id`),"
+	" ) ENGINE = InnoDB"
+)
 
 
-CREATE TABLE business_attributes (
-business_id char(22) NOT NULL,
-bikeParking boolean,
-businessAcceptsBitcoin boolean,
-businessAcceptsCreditCards boolean,
-garage_parking boolean,
-street_parking boolean,
-dogsAllowed boolean,
-rstaurantsPriceRange2 smallint,
-wheelchairAccessible boolean,
-valet_parking boolean,
-paring_lot boolean,
-PRIMARY KEY (business_id),
-FOREIGN KEY(business_id) REFERENCES business (business_id) ON DELETE CASCADE
-);
+TABLES['business_attributes'] = (
+	" CREATE TABLE `business_attributes` ("
+	" `business_id` char(22) NOT NULL,"
+	" `bikeParking` boolean,"
+	" `businessAcceptsBitcoin` boolean,"
+	" `businessAcceptsCreditCards` boolean,"
+	" `garage_parking` boolean,"
+	" `street_parking` boolean,"
+	" `dogsAllowed` boolean,"
+	" `rstaurantsPriceRange2` smallint,"
+	" `wheelchairAccessible` boolean,"
+	" `valet_parking` boolean,"
+	" `paring_lot` boolean,"
+	" PRIMARY KEY (`business_id`),"
+	" CONSTRAINT FOREIGN KEY (`business_id`) "
+	" 	REFERENCES `business` (`business_id`) ON DELETE CASCADE"
+)
 
 CREATE TABLE business_category ( 
 business_id char(22) NOT NULL,

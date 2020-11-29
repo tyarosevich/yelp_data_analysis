@@ -7,34 +7,18 @@ import utils
 load_dotenv()
 from importlib import reload
 from mysql.connector import errorcode
+from sqlalchemy import create_engine
+import pymysql
 
 
-#%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
-def init_ds(json):
-    ds = {}
-    keys = json.keys()
-    for k in keys:
-        ds[k] = []
-    return ds, keys
-
-
-def read_json(file):
-    dataset = {}
-    keys = []
-    with open(file, encoding='utf8') as file_lines:
-        for count, line in enumerate(file_lines):
-            data = json.loads(line.strip())
-            if count == 0:
-                dataset, keys = init_ds(data)
-            for k in keys:
-                dataset[k].append(data[k])
-
-        return pd.DataFrame(dataset)
 #%%
-path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
+# path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
+# path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
+path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
 
-yelp_business = read_json(path_business)
-
+# df_businesses = utils.read_json(path_business)
+# df_users = utils.read_json(path_user)
+df_checkin = utils.read_json((path_checkin))
 #%% Test opening db
 
 user_login = os.environ['db_login']
@@ -100,3 +84,20 @@ for table_name in TABLES:
 
 cursor.close()
 cnx.close()
+
+#%%
+
+test_name = 'novels'
+test_col_dict = {'name': ('char(22)', True), 'author': ('char(22)',  False)}
+test_primkey = 'name'
+test_constr_dict = {'author': ('novels_to_something', 'target_key', 'target_table', True)}
+
+#%%
+test_table_output = utils.table_string_constructor(test_name, test_col_dict, test_primkey, test_constr_dict)
+print(test_table_output)
+print(TABLES['business'])
+
+#%% Trying to do all this with sqlalchemy instead.
+
+engine = create_engine('mysql+pymysql://%s:%s@localhost/test_db' %(user_login, pword_login))
+df_checkin.to_sql("checkin", engine)
