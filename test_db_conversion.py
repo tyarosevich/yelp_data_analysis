@@ -48,3 +48,12 @@ connection = engine.connect()
 ins = business.insert()
 
 connection.execute(ins, business_id = '23kj2l3k4jlk23', name = 'farts r us', address = '31 farts lane')
+
+#%% Making sub dataframe
+sub_bus_frame = df_businesses.filter(['business_id', 'name', 'address', 'city', 'stated', 'postal_code', 'latitude', 'longitude', 'is_open']).copy()
+#%% Actually a list of dicts, each dict is a row of the dataframe where the keys are the column names, values are row values.
+test_dict = sub_bus_frame.to_dict('records')
+#%% Worked. The default columns are written to the db (but not the columns that need to be distributed).
+connection.execute(ins, test_dict)
+
+
