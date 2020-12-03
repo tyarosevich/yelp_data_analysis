@@ -2,6 +2,9 @@ import mysql.connector
 from mysql.connector import errorcode
 import json
 import pandas as pd
+from sqlalchemy import create_engine
+import pymysql
+from sqlalchemy import MetaData, Column, insert, Table
 
 
 #%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
@@ -76,3 +79,11 @@ def table_string_constructor(table_name, columns_dict, prim_key, constraint_dict
     # Adds the engine type at the end.
     string += ' ) ENGINE = InnoDB'
     return string
+
+
+def insert_table(metadata, table_name, engine, df):
+    business = Table(table_name, metadata)
+    connection = engine.connect()
+    ins = business.insert()
+    records_dict = df.to_dict('records')
+    connection.execute(ins, records_dict)
