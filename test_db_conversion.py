@@ -12,7 +12,8 @@ import pymysql
 from sqlalchemy import MetaData, Column, insert, Table
 
 
-#%%
+#%% Paths to the JSON files and import statements into dataframes
+
 path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
 # path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
 # path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
@@ -22,9 +23,11 @@ df_businesses = utils.read_json(path_business)
 # df_checkin = utils.read_json((path_checkin))
 #%% Test opening db
 
+# Login info for my local MySQL db, stored in a .env file.
 user_login = os.environ['db_login']
 pword_login = os.environ['db_pword']
 
+# Check the connection.
 cnx = mysql.connector.connect(user = user_login , password = pword_login,
                               host = '127.0.0.1' , database = 'yelp_challengedb')
 cnx.close()
@@ -33,7 +36,10 @@ cnx.close()
 
 #%% Create metadata object with schema from existing db
 
+# Creates a sqlalchmy engine for use throughout the project.
 engine = create_engine('mysql+pymysql://%s:%s@localhost/yelp_challengedb' %(user_login, pword_login))
+
+# This metadata object collects the schema from the existing db.
 metadata = MetaData()
 metadata.reflect(bind=engine)
 
@@ -41,37 +47,36 @@ metadata.reflect(bind=engine)
 tables_dict = metadata.tables
 
 
-#%% Add data to the business table in the db
-business = Table("business", metadata)
+#%% Add data to the business table in the db and insert it with sqlalchemy.
+# In practice, the df.to_sql() function seems more practical, and anecdotally seems faster.
 connection = engine.connect()
 
-ins = business.insert()
+# business = Table("business", metadata)
+# ins = business.insert(values = )
 
+#%% Create a sub-dataframe to migrate the JSON info that already fits the schema.
+# Essentially, splits the data off that we will need to reformat for the schema,
+# and commits the data that's already formatted correctly.
+sub_bus_frame = df_businesses.filter(['business_id', 'name', 'address', 'city', 'state', 'postal_code', 'latitude', 'longitude', 'stars', 'review_count', 'is_open']).copy()
 
+# Writes to the db using the sqlalchemy engine.
+sub_bus_frame.to_sql('business', con=engine, if_exists='append', index=False)
 
-#%% Making sub dataframe
-sub_bus_frame = df_businesses.filter(['business_id', 'name', 'address', 'city', 'stated', 'postal_code', 'latitude', 'longitude', 'is_open']).copy()
-
-#%% Actually a list of dicts, each dict is a row of the dataframe where the keys are the column names, values are row values.
-test_dict = sub_bus_frame.to_dict('records')
-
-#%% Worked. The default columns are written to the db (but not the columns that need to be distributed).
-connection.execute(ins, test_dict)
-
-#%% Get unique business attributes
+#%% Some pre-processing of the attributes to fit the db schema.
+# Collect the column of business attributes.
 attribute_list = list(df_businesses['attributes'])
 
 #%% Get unique keys
 # filt_list = filter(None, attribute_list)
 # unique_attr = list(set(key for dict in filt_list for key in dict.keys()))
 
+#%% Manually adjusted attribute list. Many were not in a boolean format, and for simplicity they
+# have been discarded. In practice, the non-boolean attributes could have been parsed out and simply added
+# to the attributes table if they were desired for analysis.
+
 key_list = ['BusinessAcceptsBitcoin', 'BusinessAcceptsCreditCards', 'DogsAllowed', 'WheelchairAccessible', 'AcceptsInsurance',
             'Open24Hours', 'Corkage', 'BikeParking', 'HasTV', 'RestaurantsDelivery', 'Music',
             'Smoking', 'HappyHour', 'GoodForKids', 'RestaurantsTakeOut', 'OutdoorSeating', 'DriveThru', 'CoatCheck']
-#%% Test list comprehensions
-attribute = 'BusinessAcceptsCreditCards'
-attribute_list_noempty = ['' if v is None else v for v in attribute_list]
-test_output = [x[attribute] if attribute in x else False for x in attribute_list_noempty]
 
 #%% Build the business_attribute dataframe
 
@@ -79,27 +84,19 @@ df_business_attributes = pd.DataFrame()
 for attribute in key_list:
     df_business_attributes[attribute] = [x[attribute] if attribute in x else False for x in attribute_list_noempty]
 
-# #%% Clean any non-boolean values
-# shape = df_business_attributes.shape
-#
-# for i in range(shape[0]):
-#     for j in range(shape[1]):
-#         if isinstance(df_business_attributes.iat[i,j], bool):
-#             pass
-#         else:
-#             df_business_attributes.iat[i,j] = False
-#%% Convert string booleans to booleans
+# Convert string booleans to boolean type.
 for c in df_business_attributes.columns:
     df_business_attributes[c] = [x=="True" if type(x) == str else x for x in df_business_attributes[c]]
 
 #%% Add primary keys
 df_business_attributes['business_id'] = df_businesses['business_id']
-#%% Adjust headers to match db
+
+# Adjust headers to match db
 df_business_attributes.rename(columns = {'BusinessAcceptsBitcoin': 'businessAcceptsBitcoin','BusinessAcceptsCreditCards': 'businessAcceptsCreditCards', 'DogsAllowed':'dogsAllowed',
                                'WheelchairAccessible':'wheelchairAccessible'}, inplace = True)
 
 
-#%% Add data to the business_attribute table in the db
-
-utils.insert_table(metadata, "business_attributes", engine, df_business_attributes)
+# Add data to the business_attribute table in the db
+df_business_attributes.to_sql('business_attributes', con=engine, if_exists='append', index=False)
+#utils.insert_table(metadata, "business_attributes", engine, df_business_attributes)
 

@@ -54,3 +54,19 @@ TABLES['business'] = (
 	" PRIMARY KEY (`business_id`)" 
 	" ) ENGINE = InnoDB"
 	)
+
+
+#%% Test list comprehensions
+attribute = 'BusinessAcceptsCreditCards'
+attribute_list_noempty = ['' if v is None else v for v in attribute_list]
+test_output = [x[attribute] if attribute in x else False for x in attribute_list_noempty]
+
+
+#%% Actually a list of dicts, each dict is a row of the dataframe where the keys are the column names, values are row values.
+# In general, this approach wound up being more convoluted than just writing an entire df to the db with
+# df.to_sql()
+
+test_dict = sub_bus_frame.to_dict('records')
+
+#%% Worked. The default columns are written to the db (but not the columns that need to be distributed).
+connection.execute(ins, test_dict)
