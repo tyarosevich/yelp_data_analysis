@@ -10,7 +10,8 @@ from mysql.connector import errorcode
 from sqlalchemy import create_engine
 import pymysql
 from sqlalchemy import MetaData, Column, insert, Table
-
+from nltk.tokenize import word_tokenize
+import numpy as np
 
 #%% Paths to the JSON files and import statements into dataframes
 
@@ -73,7 +74,7 @@ attribute_list = list(df_businesses['attributes'])
 #%% Manually adjusted attribute list. Many were not in a boolean format, and for simplicity they
 # have been discarded. In practice, the non-boolean attributes could have been parsed out and simply added
 # to the attributes table if they were desired for analysis.
-
+attribute_list_noempty = ['' if v is None else v for v in attribute_list]
 key_list = ['BusinessAcceptsBitcoin', 'BusinessAcceptsCreditCards', 'DogsAllowed', 'WheelchairAccessible', 'AcceptsInsurance',
             'Open24Hours', 'Corkage', 'BikeParking', 'HasTV', 'RestaurantsDelivery', 'Music',
             'Smoking', 'HappyHour', 'GoodForKids', 'RestaurantsTakeOut', 'OutdoorSeating', 'DriveThru', 'CoatCheck']
@@ -100,3 +101,19 @@ df_business_attributes.rename(columns = {'BusinessAcceptsBitcoin': 'businessAcce
 df_business_attributes.to_sql('business_attributes', con=engine, if_exists='append', index=False)
 #utils.insert_table(metadata, "business_attributes", engine, df_business_attributes)
 
+#%% Tokenize the various categories to get all the business categories.
+
+# Remove null entries
+category_data = list(filter(None, list(df_businesses['categories'])))
+
+# Split up each listed category and keep uniques.
+category_token_list = [x.split(',') for x in category_data]
+unique_tokens = set([x for sublist in category_token_list for x in sublist])
+
+#%% Generate category ids, create df, and write to the db.
+token_id = np.arange(len(unique_tokens), dtype = int)
+
+df_category_ref = pd.DataFrame()
+df_category_ref['category_id'] = token_id
+df_category_ref['category_name'] = unique_tokens
+df_category_ref.to_sql('category_ref', con=engine, if_exists='append', index=False)
