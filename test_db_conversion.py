@@ -117,3 +117,31 @@ df_category_ref = pd.DataFrame()
 df_category_ref['category_id'] = token_id
 df_category_ref['category_name'] = unique_tokens
 df_category_ref.to_sql('category_ref', con=engine, if_exists='append', index=False)
+
+#%% Make a key value dict by name:id for the categories.
+cat_names = list(unique_tokens)
+cat_id = list(token_id)
+category_keys = {cat_names[i]:cat_id[i] for i in range(len(cat_id))}
+#%% Create the business_category data frame
+
+
+cat_business_setup_list = []
+
+# Iterates through the category strings, checks for membership
+# and creates a one-to-one entry for that business and category.
+# Possible faster solutions with complex nested list comprehension
+# but this one was sub one minute for 200k rows.
+for index, row in df_businesses.iterrows():
+    if row['categories'] == None:
+        continue
+    for cat in row['categories'].split(','):
+        if cat in unique_tokens:
+            cat_business_setup_list.append( [row['business_id'], category_keys[cat]])
+
+# Write the data frame from list of lists.
+headers = ['business_id', 'category_id']
+df_business_category = pd.DataFrame(cat_business_setup_list, columns=headers)
+
+# Write to the database. Not sure about this approach. Makes for an enormous table. But I suppose it
+# Might allow GROUP BY with categories.
+df_business_category.to_sql('business_category', con=engine, if_exists='append', index=False)
