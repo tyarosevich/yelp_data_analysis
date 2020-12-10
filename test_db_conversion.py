@@ -12,15 +12,17 @@ import pymysql
 from sqlalchemy import MetaData, Column, insert, Table
 from nltk.tokenize import word_tokenize
 import numpy as np
+import gc
+from sys import getsizeof
 
 #%% Paths to the JSON files and import statements into dataframes
 
-path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
-# path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
+# path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
+path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
 # path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
 
-df_businesses = utils.read_json(path_business)
-# df_users = utils.read_json(path_user)
+# df_businesses = utils.read_json(path_business)
+df_users = utils.read_json(path_user)
 # df_checkin = utils.read_json((path_checkin))
 #%% Test opening db
 
@@ -145,3 +147,42 @@ df_business_category = pd.DataFrame(cat_business_setup_list, columns=headers)
 # Write to the database. Not sure about this approach. Makes for an enormous table. But I suppose it
 # Might allow GROUP BY with categories.
 df_business_category.to_sql('business_category', con=engine, if_exists='append', index=False)
+
+#%% Separate friend column to different table.
+
+df_friend_relations = df_users.filter(['user_id', 'friends']).copy()
+df_users.drop('friends', axis=1, inplace=True)
+
+#%% Write to the db
+pd.to_datetime(df_users.yelping_since)
+
+# Drop elite, whatever that is.
+df_users.drop('elite', axis=1, inplace=True)
+
+df_users.to_sql('users', con=engine, if_exists='append', index=False)
+
+#%% Creates the relationships dataframe by creating a list of nested lists.
+# Each nested list is a row of the dataframe. Note this table is quite large (204 million elements).
+
+df_relationships = pd.DataFrame(
+    [ [user1, user2] for user1, fr_list in df_friend_relations.itertuples(index=False, name=None) for user2 in fr_list.split(',')]
+)
+
+df_relationships.columns = ['user1_id', 'user2_id']
+
+#%% Create subframes to obviate memory errors.
+
+# subframe_list = np.array_split(df_relationships, 10)
+
+#%% Release stuff from memory
+del [[df_users, df_friend_relations]]
+gc.collect()
+Out[10]: 15
+df_users=pd.DataFrame()
+df_friend_relations=pd.DataFrame()
+
+#%%
+for frame in subframe_list:
+    frame.to_sql('relationships', con=engine, if_exists='append', index=False)
+    print("Subframe done")
+
