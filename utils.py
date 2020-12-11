@@ -87,3 +87,4 @@ def insert_table(metadata, table_name, engine, df):
     ins = business.insert()
     records_dict = df.to_dict('records')
     connection.execute(ins, records_dict)
+

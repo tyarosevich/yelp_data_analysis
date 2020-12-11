@@ -17,13 +17,13 @@ from sys import getsizeof
 
 #%% Paths to the JSON files and import statements into dataframes
 
-# path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
+path_business = "data\yelp_archive\yelp_academic_dataset_business.json"
 path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
-# path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
+path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
+path_review = "data\yelp_archive\yelp_academic_dataset_review.json"
 
-# df_businesses = utils.read_json(path_business)
-df_users = utils.read_json(path_user)
-# df_checkin = utils.read_json((path_checkin))
+df_review = utils.read_json(path_review)
+
 #%% Test opening db
 
 # Login info for my local MySQL db, stored in a .env file.
@@ -34,7 +34,6 @@ pword_login = os.environ['db_pword']
 cnx = mysql.connector.connect(user = user_login , password = pword_login,
                               host = '127.0.0.1' , database = 'yelp_challengedb')
 cnx.close()
-
 
 
 #%% Create metadata object with schema from existing db
@@ -49,10 +48,9 @@ metadata.reflect(bind=engine)
 # Confirmation of schema
 tables_dict = metadata.tables
 
-
 #%% Add data to the business table in the db and insert it with sqlalchemy.
 # In practice, the df.to_sql() function seems more practical, and anecdotally seems faster.
-connection = engine.connect()
+# connection = engine.connect()
 
 # business = Table("business", metadata)
 # ins = business.insert(values = )
@@ -170,10 +168,6 @@ df_relationships = pd.DataFrame(
 
 df_relationships.columns = ['user1_id', 'user2_id']
 
-#%% Create subframes to obviate memory errors.
-
-# subframe_list = np.array_split(df_relationships, 10)
-
 #%% Release stuff from memory
 del [[df_users, df_friend_relations]]
 gc.collect()
@@ -181,8 +175,15 @@ Out[10]: 15
 df_users=pd.DataFrame()
 df_friend_relations=pd.DataFrame()
 
-#%%
-for frame in subframe_list:
-    frame.to_sql('relationships', con=engine, if_exists='append', index=False)
-    print("Subframe done")
+#%% Write relations to db
+df_relationships.to_sql('relationships', con=engine, if_exists='append', index=False, chunksize=10000)
+#%% Change date type
+pd.to_datetime(df_review.date)
+
+#%% Localize datetime values
+df_review['date'] = pd.to_datetime(df_review['date']).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+#%% Write reviews to db
+df_review.to_sql('review', con=engine, if_exists='append', index=False, chunksize=10000)
+
+
 
