@@ -1,4 +1,4 @@
-# Table creation via mysqlconnector
+# Original table create calls
 
 CREATE TABLE `business` (
 `business_id` char(22) NOT NULL,

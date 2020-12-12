@@ -2,4 +2,5 @@ data/
 .idea/
 project_notes.txt
 .env
-sql_table_creation.py
+*.pickle
+yelp_ERD.png

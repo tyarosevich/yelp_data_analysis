@@ -5,7 +5,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import utils
 import gc
 import numpy as np
-
+import pickle
 #%% Load reviews
 path_review = "data\yelp_archive\yelp_academic_dataset_review.json"
 df_review = utils.read_json(path_review)
@@ -39,3 +39,15 @@ df_review_text=pd.DataFrame()
 
 for frame in list_df:
     frame['vader_scores'] = frame['text'].apply(lambda text: sid.polarity_scores(text))
+
+#%%
+
+with open("sentiments.pickle", 'wb') as f:
+    pickle.dump(list_df, f)
+
+#%% Merge the list of dataframes
+
+df_review_sentiment = pd.concat(list_df)
+
+with open("sentiments.pickle", 'wb') as f:
+    pickle.dump(df_review_sentiment, f)
