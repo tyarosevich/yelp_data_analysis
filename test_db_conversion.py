@@ -39,7 +39,7 @@ cnx.close()
 #%% Create metadata object with schema from existing db
 
 # Creates a sqlalchmy engine for use throughout the project.
-engine = create_engine('mysql+pymysql://%s:%s@localhost/yelp_challengedb' %(user_login, pword_login))
+engine = create_engine('mysql+pymysql://%s:%s@localhost/yelp_challengedb' %(user_login, pword_login), pool_recycle=3600, pool_size=5)
 
 # This metadata object collects the schema from the existing db.
 metadata = MetaData()
@@ -177,13 +177,12 @@ df_friend_relations=pd.DataFrame()
 
 #%% Write relations to db
 df_relationships.to_sql('relationships', con=engine, if_exists='append', index=False, chunksize=10000)
-#%% Change date type
-pd.to_datetime(df_review.date)
+
 
 #%% Localize datetime values
 df_review['date'] = pd.to_datetime(df_review['date']).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
 #%% Write reviews to db
-df_review.to_sql('review', con=engine, if_exists='append', index=False, chunksize=10000)
+df_review.to_sql('review', con=engine, if_exists='append', index=False, chunksize=2000, method='multi')
 
 
 
