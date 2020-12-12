@@ -40,12 +40,7 @@ df_review_text=pd.DataFrame()
 for frame in list_df:
     frame['vader_scores'] = frame['text'].apply(lambda text: sid.polarity_scores(text))
 
-#%%
-
-with open("sentiments.pickle", 'wb') as f:
-    pickle.dump(list_df, f)
-
-#%% Merge the list of dataframes
+#%% Merge the list of dataframes and save
 
 df_review_sentiment = pd.concat(list_df)
 
