@@ -37,8 +37,8 @@ mat_sentiment_binary[:,0] = (mat_sentiment_binary[:,0] > 3) * 1
 
 #%% Tokenize and drop stop words from corpus
 stop_set = set(stopwords.words('english'))
-word_list = list(mat_sentiment_binary[:,1])
-word_list_token = [word_tokenize(word) for word in word_list if word not in stop_set]
+sent_list = list(mat_sentiment_binary[:,1])
+reviews_cleaned = [[word for word in word_tokenize(sent) if word not in stop_set] for sent in sent_list]
 #%% Build the vocabulary
 
 # Include special tokens
@@ -46,13 +46,12 @@ word_list_token = [word_tokenize(word) for word in word_list if word not in stop
 Vocab = {'__PAD__': 0, '__</e>__': 1, '__UNK__': 2}
 
 # Note that we build vocab using training data
-for review in word_list_token:
+for review in reviews_cleaned:
     for word in review:
         if word not in Vocab:
             Vocab[word] = len(Vocab)
 
 print("Total words in vocab are", len(Vocab))
-display(Vocab)
 
 #%% Convert the tokenized review to indexed vectors, then convert
 # this list of lists to a padded numpy array, where each row is a review. Note that
@@ -61,7 +60,7 @@ display(Vocab)
 # of reviews fit in this length anyway, and long pos/neg reviews are likely to be highly
 # redundant in regard to sentiment. 
 max_len = 200
-word_list_vec = [utils.review_to_vector(list, Vocab, '__UNK__') for list in word_list_token]
+word_list_vec = [utils.review_to_vector(list, Vocab, '__UNK__') for list in reviews_cleaned]
 review_matrix = pad_sequences(word_list_vec, value=0, maxlen=max_len)
 #%% Train/validate/test sets
 
@@ -74,4 +73,4 @@ x_train, x_val, y_train, y_val = (
 )
 
 
-#%%
+#%% Next steps: set up the model, do an embedding layer with glove embeddings. We'll see how nasty it is.
