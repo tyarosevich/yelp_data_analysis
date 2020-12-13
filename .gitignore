@@ -4,3 +4,4 @@ project_notes.txt
 *.env
 *.pickle
 yelp_ERD.png
+*.mwb
