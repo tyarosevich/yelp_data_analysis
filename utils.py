@@ -5,6 +5,8 @@ import pandas as pd
 from sqlalchemy import create_engine
 import pymysql
 from sqlalchemy import MetaData, Column, insert, Table
+import pickle
+from nltk.tokenize import word_tokenize
 
 
 #%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
@@ -88,3 +90,34 @@ def insert_table(metadata, table_name, engine, df):
     records_dict = df.to_dict('records')
     connection.execute(ins, records_dict)
 
+def load_stuff(path):
+    '''
+    Loads a file
+    Parameters
+    ----------
+    path: str
+        local or full path of file
+
+    Returns
+    -------
+    '''
+    with open(path, 'rb') as f:
+        file = pickle.load(f)
+    return file
+
+# Converts reviews to vectors of indexed numbers.
+def review_to_vector(review, vocab_dict, unk_key):
+    '''
+    Input:
+        review - The review as a tokenized list
+        vocab_dict - The words dictionary
+    Output:
+        vector_list - a python list of integer values associated with vocab words
+
+    '''
+    # Convert the tokenized review into a list of integers indexed in the vocab,
+    # using the unknown value if the word isn't present.
+    unkn_id = vocab_dict[unk_key]
+    vector_list = [vocab_dict[word] if word in vocab_dict else unkn_id for word in review]
+
+    return vector_list
