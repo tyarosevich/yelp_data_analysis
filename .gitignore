@@ -1,6 +1,6 @@
 data/
 .idea/
 project_notes.txt
-.env
+*.env
 *.pickle
 yelp_ERD.png
