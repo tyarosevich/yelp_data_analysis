@@ -12,7 +12,13 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 nltk.download("stopwords")
 from keras.preprocessing.sequence import pad_sequences
-
+import seaborn as sns
+import matplotlib.pyplot as plt
+from keras.models import Sequential, load_model
+from keras.layers.core import Activation, Dropout, Dense
+from keras.layers import Flatten, LSTM
+from keras.layers import GlobalMaxPooling1D
+from keras.layers.embeddings import Embedding
 
 #%% Import the review data, keep 20k for study and pickle
 
@@ -52,6 +58,7 @@ for review in reviews_cleaned:
             Vocab[word] = len(Vocab)
 
 print("Total words in vocab are", len(Vocab))
+vocab_size = len(Vocab)
 
 #%% Convert the tokenized review to indexed vectors, then convert
 # this list of lists to a padded numpy array, where each row is a review. Note that
@@ -73,4 +80,45 @@ x_train, x_val, y_train, y_val = (
 )
 
 
-#%% Next steps: set up the model, do an embedding layer with glove embeddings. We'll see how nasty it is.
+#%%
+sent_vector = mat_sentiment_binary[:,0]
+sns.set_theme(style="darkgrid")
+axs = sns.countplot(x = sent_vector)
+plt.show()
+
+#%% Import glove embeddings
+embeddings_dict = dict()
+glove_file = open('C:\\Users\zennsunni\Documents\Glove Embeddings\glove.6B\glove.6B.100d.txt', encoding="utf8")
+for line in glove_file:
+    records = line.split()
+    word = records[0]
+    vector_array = np.asarray(records[1:], dtype='float32')
+    embeddings_dict[word] = vector_array
+glove_file.close()
+
+#%% Create embedding matrix
+
+embedding_mat = np.zeros((vocab_size, 100))
+for word, index in Vocab.items():
+    vec = embeddings_dict.get(word)
+    if vec is not None:
+        embedding_mat[index] = vec
+
+#%% Create the model. We're using an LTSM layer at the core of this model,
+# since LTSM networks perform very well for sequence data.
+model = Sequential()
+embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
+model.add(embedding_layer)
+model.add(LSTM(128))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
+
+#%% Save the model, as compilation time is high
+model.save('C:\Projects\yelp_analysis\keras_sentiment_model', overwrite=True)
+#%% Load model
+model = load_model('C:\Projects\yelp_analysis\keras_sentiment_model')
+#%% Train the model
+
+training_hist = model.fit(x_train, y_train, batch_size=128, epochs=1, verbose=1, validation_split=0.2)
+
+result = model.evaluate(x_test, y_test, verbose=1)

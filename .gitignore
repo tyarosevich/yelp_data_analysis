@@ -5,3 +5,4 @@ project_notes.txt
 *.pickle
 yelp_ERD.png
 *.mwb
+keras_sentiment_model
