@@ -7,6 +7,7 @@ import pymysql
 from sqlalchemy import MetaData, Column, insert, Table
 import pickle
 from nltk.tokenize import word_tokenize
+import matplotlib.pyplot as plt
 
 
 #%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
@@ -121,3 +122,12 @@ def review_to_vector(review, vocab_dict, unk_key):
     vector_list = [vocab_dict[word] if word in vocab_dict else unkn_id for word in review]
 
     return vector_list
+
+def plot_history(hist_object, model_type):
+    plt.plot(hist_object.history['acc'])
+    plt.plot(hist_object.history['val_acc'])
+    plt.title('Model Accuracy for %s Architecture' %(model_type))
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()

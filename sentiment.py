@@ -16,7 +16,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from keras.models import Sequential, load_model
 from keras.layers.core import Activation, Dropout, Dense
-from keras.layers import Flatten, LSTM
+from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D
 from keras.layers import GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
 
@@ -103,9 +103,13 @@ for word, index in Vocab.items():
     vec = embeddings_dict.get(word)
     if vec is not None:
         embedding_mat[index] = vec
+#%% Save the embeddings matrix
+with open("embedding_matrix.pickle", 'wb') as f:
+    pickle.dump(embedding_mat, f)
+#%% Load the embedding matrix
+embedding_mat = utils.load_stuff("embedding_matrix.pickle")
 
-#%% Create the model. We're using an LTSM layer at the core of this model,
-# since LTSM networks perform very well for sequence data.
+#%% Create a LTSM Model.
 model = Sequential()
 embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
 model.add(embedding_layer)
@@ -115,10 +119,28 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
 
 #%% Save the model, as compilation time is high
 model.save('C:\Projects\yelp_analysis\keras_sentiment_model', overwrite=True)
+
+#%% Create a Model with a convolutional layer before the LSTM layer.
+model_cnn_lstm = Sequential()
+embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
+model_cnn_lstm.add(embedding_layer)
+model_cnn_lstm.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
+model_cnn_lstm.add(MaxPooling1D(pool_size=2))
+model_cnn_lstm.add(LSTM(128))
+model_cnn_lstm.add(Dense(1, activation='sigmoid'))
+model_cnn_lstm.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
+
+#%% Save the CNN/LSTM Model
+model_cnn_lstm.save('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', overwrite=True)
+
 #%% Load model
 model = load_model('C:\Projects\yelp_analysis\keras_sentiment_model')
 #%% Train the model
 
-training_hist = model.fit(x_train, y_train, batch_size=128, epochs=1, verbose=1, validation_split=0.2)
+training_hist = model_cnn_lstm.fit(x_train, y_train, batch_size=128, epochs=1, verbose=1, validation_split=0.2)
 
-result = model.evaluate(x_test, y_test, verbose=1)
+result = model_cnn_lstm.evaluate(x_test, y_test, verbose=1)
+
+#%% View history
+
+utils.plot_history(training_hist, 'CNN to LSTM')
