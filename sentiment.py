@@ -19,6 +19,7 @@ from keras.layers.core import Activation, Dropout, Dense
 from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D
 from keras.layers import GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 #%% Import the review data, keep 20k for study and pickle
 
@@ -75,9 +76,6 @@ x_train, x_test, y_train, y_test = (
     train_test_split(review_matrix, mat_sentiment_binary[:, 0], test_size= .2, random_state=1)
 )
 
-x_train, x_val, y_train, y_val = (
-    train_test_split(x_train, y_train, test_size=0.25, random_state=1)
-)
 
 
 #%%
@@ -119,27 +117,37 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
 
 #%% Save the model, as compilation time is high
 model.save('C:\Projects\yelp_analysis\keras_sentiment_model', overwrite=True)
-
+#%% Load model
+model = load_model('C:\Projects\yelp_analysis\keras_sentiment_model')
 #%% Create a Model with a convolutional layer before the LSTM layer.
 model_cnn_lstm = Sequential()
 embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
 model_cnn_lstm.add(embedding_layer)
-model_cnn_lstm.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
+model_cnn_lstm.add(Conv1D(filters=32, kernel_size=4, padding='same', activation='relu'))
 model_cnn_lstm.add(MaxPooling1D(pool_size=2))
 model_cnn_lstm.add(LSTM(128))
+model_cnn_lstm.add(Dense(128, activation='relu'))
+model_cnn_lstm.add(Dropout(.5))
 model_cnn_lstm.add(Dense(1, activation='sigmoid'))
 model_cnn_lstm.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
+print(model_cnn_lstm.summary())
 
 #%% Save the CNN/LSTM Model
 model_cnn_lstm.save('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', overwrite=True)
+#%% Load CNN to LSTM model
+model_cnn_lstm = load_model('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', compile=False)
 
-#%% Load model
-model = load_model('C:\Projects\yelp_analysis\keras_sentiment_model')
 #%% Train the model
 
-training_hist = model_cnn_lstm.fit(x_train, y_train, batch_size=128, epochs=1, verbose=1, validation_split=0.2)
+# Early stopping callback and model checkpoint, which saves the best model dynamically.
+es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
+mc = ModelCheckpoint('best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
+callback_list = [es, mc]
+
+training_hist = model_cnn_lstm.fit(x_train, y_train, batch_size=128, epochs=20, verbose=1, validation_split=0.2, callbacks=callback_list)
 
 result = model_cnn_lstm.evaluate(x_test, y_test, verbose=1)
+print(result)
 
 #%% View history
 

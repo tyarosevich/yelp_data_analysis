@@ -7,3 +7,4 @@ yelp_ERD.png
 *.mwb
 keras_sentiment_model
 keras_sentiment_model_cnn
+*.h5
