@@ -7,7 +7,7 @@ import numpy as np
 import utils
 import pickle
 from importlib import reload
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 nltk.download("stopwords")
@@ -20,6 +20,8 @@ from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D
 from keras.layers import GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.wrappers.scikit_learn import KerasClassifier
+
 
 #%% Import the review data, keep 20k for study and pickle
 
@@ -73,7 +75,7 @@ review_matrix = pad_sequences(word_list_vec, value=0, maxlen=max_len)
 #%% Train/validate/test sets
 
 x_train, x_test, y_train, y_test = (
-    train_test_split(review_matrix, mat_sentiment_binary[:, 0], test_size= .2, random_state=1)
+    train_test_split(review_matrix, mat_sentiment_binary[:, 0], test_size=0.2, random_state=1)
 )
 
 
@@ -107,35 +109,33 @@ with open("embedding_matrix.pickle", 'wb') as f:
 #%% Load the embedding matrix
 embedding_mat = utils.load_stuff("embedding_matrix.pickle")
 
-#%% Create a LTSM Model.
-model = Sequential()
-embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
-model.add(embedding_layer)
-model.add(LSTM(128))
-model.add(Dense(1, activation='sigmoid'))
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
-
-#%% Save the model, as compilation time is high
-model.save('C:\Projects\yelp_analysis\keras_sentiment_model', overwrite=True)
-#%% Load model
-model = load_model('C:\Projects\yelp_analysis\keras_sentiment_model')
 #%% Create a Model with a convolutional layer before the LSTM layer.
-model_cnn_lstm = Sequential()
-embedding_layer = Embedding(vocab_size, 100, weights=[embedding_mat], input_length=200 , trainable=False)
-model_cnn_lstm.add(embedding_layer)
-model_cnn_lstm.add(Conv1D(filters=32, kernel_size=4, padding='same', activation='relu'))
-model_cnn_lstm.add(MaxPooling1D(pool_size=2))
-model_cnn_lstm.add(LSTM(128))
-model_cnn_lstm.add(Dense(128, activation='relu'))
-model_cnn_lstm.add(Dropout(.5))
-model_cnn_lstm.add(Dense(1, activation='sigmoid'))
-model_cnn_lstm.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
-print(model_cnn_lstm.summary())
 
+model = KerasClassifier(build_fn=utils.create_cnn_model, verbose=1)
+
+#%% Hyperparameter tuning vars. Note that gridsearch is being allowed
+# to default to k=5 fold cross validation.
+
+activation = ['relu', 'tanh']
+epochs=[5, 10, 15, 20]
+batch_size=[10, 20, 40, 60, 80, 100]
+init_mode = ['uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal', 'glorot_uniform', 'he_normal', 'he_uniform']
+# Note, need to tune comparing adam and a tuned SGD.
+optimizer = ['Adam', 'RMSprop', 'Adamax', 'Nadam', 'Adagrad', 'SGD']
+param_dict = dict(activation=activation, epochs=epochs, batch_size=batch_size, optimizer=optimizer, init_mode=init_mode)
+grid = GridSearchCV(estimator=model, param_grid=param_dict, n_jobs=1)
+
+#%% Perform grid search.
+
+grid_result = grid.fit(x_train, y_train)
+
+# Summary
+print("Best Result was: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+params = grid_result.cv_results_['params']
 #%% Save the CNN/LSTM Model
-model_cnn_lstm.save('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', overwrite=True)
+model.save('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', overwrite=True)
 #%% Load CNN to LSTM model
-model_cnn_lstm = load_model('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', compile=False)
+model_best = load_model('C:\\Projects\yelp_analysis\\best_model.h5', compile=False)
 
 #%% Train the model
 

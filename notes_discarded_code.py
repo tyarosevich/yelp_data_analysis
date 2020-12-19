@@ -70,3 +70,4 @@ test_dict = sub_bus_frame.to_dict('records')
 
 #%% Worked. The default columns are written to the db (but not the columns that need to be distributed).
 connection.execute(ins, test_dict)
+
