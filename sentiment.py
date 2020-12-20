@@ -116,13 +116,16 @@ model = KerasClassifier(build_fn=utils.create_cnn_model, verbose=1)
 #%% Hyperparameter tuning vars. Note that gridsearch is being allowed
 # to default to k=5 fold cross validation.
 
-activation = ['relu', 'tanh']
-epochs=[5, 10, 15, 20]
-batch_size=[10, 20, 40, 60, 80, 100]
-init_mode = ['uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal', 'glorot_uniform', 'he_normal', 'he_uniform']
+# param_results collects the results of various testing. Not that he_normal is named
+# for the author, and it's kaiming.
+param_results = {'batch_size':20, 'epochs':10, 'activation':'relu', 'optimizer':'adam', 'init_mode':'he_normal'}
+# init_mode = ['he_normal', 'he_uniform', 'glorot_normal', 'glorot_uniform']
+epochs = [5, 10]
+units = [32, 64, 128]
+rate = [.25, .5, .75]
 # Note, need to tune comparing adam and a tuned SGD.
-optimizer = ['Adam', 'RMSprop', 'Adamax', 'Nadam', 'Adagrad', 'SGD']
-param_dict = dict(activation=activation, epochs=epochs, batch_size=batch_size, optimizer=optimizer, init_mode=init_mode)
+# optimizer = ['Adam', 'RMSprop', 'SGD']
+param_dict = dict(units=units, rate=rate, epochs=epochs)
 grid = GridSearchCV(estimator=model, param_grid=param_dict, n_jobs=1)
 
 #%% Perform grid search.
