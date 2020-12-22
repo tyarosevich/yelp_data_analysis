@@ -10,9 +10,9 @@ from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
 from keras.models import Sequential, load_model
 from keras.layers.core import Activation, Dropout, Dense
-from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D
-from keras.layers import GlobalMaxPooling1D
+from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D, GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
+from tensorflow.keras import regularizers
 
 
 #%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
@@ -140,7 +140,7 @@ def plot_history(hist_object, model_type):
 # Model creation function for use with sklearn wrapper.
 def create_cnn_model(filters=32, kernel_size=4, activation='relu',
                      dense1_activ = 'relu', rate = .5,
-                     units=128, optimizer='adam', init_mode='uniform'):
+                     units=128, optimizer='adam', init_mode='uniform', activity_regularizer=None):
     '''
     Creates a model of the (informal) architecture:
      Embedding -> CNN -> Maxpool -> LSTM -> Dense -> Dropout -> Dense
@@ -154,7 +154,7 @@ def create_cnn_model(filters=32, kernel_size=4, activation='relu',
     model.add(Conv1D(filters=filters, kernel_size=kernel_size, padding='same', activation=activation))
     model.add(MaxPooling1D(pool_size=2))
     model.add(LSTM(128))
-    model.add(Dense(units=units, activation='relu', kernel_initializer=init_mode))
+    model.add(Dense(units=units, activation='relu', kernel_initializer=init_mode, activity_regularizer=activity_regularizer))
     model.add(Dropout(rate=rate))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])

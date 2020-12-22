@@ -21,6 +21,7 @@ from keras.layers import GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.wrappers.scikit_learn import KerasClassifier
+from tensorflow.keras import regularizers
 
 
 #%% Import the review data, keep 20k for study and pickle
@@ -118,15 +119,11 @@ model = KerasClassifier(build_fn=utils.create_cnn_model, verbose=1)
 
 # param_results collects the results of various testing. Not that he_normal is named
 # for the author, and it's kaiming.
-param_results = {'batch_size':20, 'epochs':10, 'activation':'relu', 'optimizer':'adam', 'init_mode':'he_normal'}
-# init_mode = ['he_normal', 'he_uniform', 'glorot_normal', 'glorot_uniform']
-epochs = [5, 10]
-units = [32, 64, 128]
-rate = [.25, .5, .75]
-# Note, need to tune comparing adam and a tuned SGD.
-# optimizer = ['Adam', 'RMSprop', 'SGD']
-param_dict = dict(units=units, rate=rate, epochs=epochs)
-grid = GridSearchCV(estimator=model, param_grid=param_dict, n_jobs=1)
+param_results = {'batch_size':20, 'epochs':10, 'activation':'relu', 'optimizer':'adam', 'init_mode':'he_normal', 'units':128, 'rate':0.5}
+epochs = [5]
+activity_regularizer = ["l2"]
+param_dict = dict(activity_regularizer=activity_regularizer, epochs=epochs)
+grid = GridSearchCV(estimator=model, param_grid=param_dict, n_jobs=1, cv=3)
 
 #%% Perform grid search.
 
