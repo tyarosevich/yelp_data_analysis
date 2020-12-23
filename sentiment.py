@@ -132,8 +132,10 @@ grid_result = grid.fit(x_train, y_train)
 # Summary
 print("Best Result was: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
 params = grid_result.cv_results_['params']
-#%% Save the CNN/LSTM Model
-model.save('C:\Projects\yelp_analysis\keras_sentiment_model_cnn', overwrite=True)
+#%% Fresh model for fine-tuning and early stopping
+
+model = utils.create_cnn_model(init_mode='he_uniform', activity_regularizer = regularizers.l2(1e-4))
+
 #%% Load CNN to LSTM model
 model_best = load_model('C:\\Projects\yelp_analysis\\best_model.h5', compile=False)
 
@@ -144,11 +146,17 @@ es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
 mc = ModelCheckpoint('best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
 callback_list = [es, mc]
 
-training_hist = model_cnn_lstm.fit(x_train, y_train, batch_size=128, epochs=20, verbose=1, validation_split=0.2, callbacks=callback_list)
+training_hist = model.fit(x_train, y_train, batch_size=20, epochs=20, verbose=1, validation_split=0.2, callbacks=callback_list)
 
-result = model_cnn_lstm.evaluate(x_test, y_test, verbose=1)
+result = model.evaluate(x_test, y_test, verbose=1)
 print(result)
 
 #%% View history
 
 utils.plot_history(training_hist, 'CNN to LSTM')
+
+#%% Check saved model
+model_best.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
+result = model_best.evaluate(x_test, y_test, verbose=1)
+print(result)
+# 90.8% accurate.

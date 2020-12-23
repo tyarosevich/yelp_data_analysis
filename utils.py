@@ -131,7 +131,7 @@ def review_to_vector(review, vocab_dict, unk_key):
 def plot_history(hist_object, model_type):
     plt.plot(hist_object.history['acc'])
     plt.plot(hist_object.history['val_acc'])
-    plt.title('Model Accuracy for %s Architecture' %(model_type))
+    plt.title('Early Stopping Accuracy for %s Architecture' %(model_type))
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.legend(['train', 'test'], loc='upper left')
@@ -159,3 +159,4 @@ def create_cnn_model(filters=32, kernel_size=4, activation='relu',
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])
     return model
+
