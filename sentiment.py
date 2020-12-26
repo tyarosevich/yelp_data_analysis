@@ -22,6 +22,8 @@ from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.wrappers.scikit_learn import KerasClassifier
 from tensorflow.keras import regularizers
+import timeit
+
 
 
 #%% Import the review data, keep 20k for study and pickle
@@ -29,10 +31,11 @@ from tensorflow.keras import regularizers
 path_review = "data\yelp_archive\yelp_academic_dataset_review.json"
 df_review = utils.read_json(path_review)
 
+#%%
 df_sentiment_data = df_review[['stars', 'text']][0:20000]
 
 # Drop neutral reviews, since we'll be doing coarse analysis.
-df_sentiment_binary = df_sentiment_data.drop(df_sentiment_data[df_sentiment_data['stars'] == 3].index)
+df_sentiment_binary = utils.drop_neutral(df_sentiment_data)
 
 with open("review_subset.pickle", 'wb') as f:
     pickle.dump(df_sentiment_binary, f)
@@ -41,46 +44,22 @@ with open("review_subset.pickle", 'wb') as f:
 
 df_sentiment_binary = utils.load_stuff("review_subset.pickle")
 
-#%% Switch to numpy arrays
-mat_sentiment_binary = df_sentiment_binary.to_numpy()
-mat_sentiment_binary[:,0] = (mat_sentiment_binary[:,0] > 3) * 1
-
-#%% Tokenize and drop stop words from corpus
-stop_set = set(stopwords.words('english'))
-sent_list = list(mat_sentiment_binary[:,1])
-reviews_cleaned = [[word for word in word_tokenize(sent) if word not in stop_set] for sent in sent_list]
-#%% Build the vocabulary
-
-# Include special tokens
-# started with pad, end of line and unk tokens
-Vocab = {'__PAD__': 0, '__</e>__': 1, '__UNK__': 2}
-
-# Note that we build vocab using training data
-for review in reviews_cleaned:
-    for word in review:
-        if word not in Vocab:
-            Vocab[word] = len(Vocab)
-
-print("Total words in vocab are", len(Vocab))
-vocab_size = len(Vocab)
-
 #%% Convert the tokenized review to indexed vectors, then convert
 # this list of lists to a padded numpy array, where each row is a review. Note that
 # we have truncated/padded to a max length of 200 words, favoring the end of reviews
 # because this is where more impactful language is likely to be found. The vast majority
 # of reviews fit in this length anyway, and long pos/neg reviews are likely to be highly
 # redundant in regard to sentiment. 
+
 max_len = 200
-word_list_vec = [utils.review_to_vector(list, Vocab, '__UNK__') for list in reviews_cleaned]
-review_matrix = pad_sequences(word_list_vec, value=0, maxlen=max_len)
+stop_set = set(stopwords.words('english'))
+review_matrix, mat_sentiment_binary, Vocab = utils.text_to_vectors(df_sentiment_binary, stop_set, 200, Vocab = None)
+vocab_size = len(Vocab)
 #%% Train/validate/test sets
 
 x_train, x_test, y_train, y_test = (
     train_test_split(review_matrix, mat_sentiment_binary[:, 0], test_size=0.2, random_state=1)
 )
-
-
-
 #%%
 sent_vector = mat_sentiment_binary[:,0]
 sns.set_theme(style="darkgrid")
@@ -160,3 +139,42 @@ model_best.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc']
 result = model_best.evaluate(x_test, y_test, verbose=1)
 print(result)
 # 90.8% accurate.
+#%% Let's compare the vader predictions and my own classifier to the actual
+# star scores.
+
+# Set a range of values to test. We'll pull the vader sentiment results and the associated review text together.
+a = 100000
+b = 200000
+df_sentiment_vader = utils.load_df_subset('sentiments.pickle','pickle', a, b, ['vader_scores'])
+
+df_review_subset = utils.load_df_subset(path_review, 'JSON', a, b, ['stars', 'text'])
+
+# Drop neutral values since we are still doing coarse sentiment.
+df_review_sub_bin = utils.drop_neutral(df_review_subset)
+
+# Get the tokenized integer form reviews. Note that we MUST pass the Vocab dict used
+# to train the original model since the alternative would have been to build the Vocab
+# based on the entire dataset.
+review_matrix, mat_sentiment_binary, Vocab = utils.text_to_vectors(df_review_sub_bin, stop_set, 200, Vocab=Vocab)
+
+#Load model to evaluate and get predictions.
+model_final = load_model('C:\\Projects\yelp_analysis\\best_model.h5', compile=True)
+predictions = model_final.predict_classes(review_matrix)
+
+# Make a dataframe of relevant results
+df_sentiment_results = pd.DataFrame()
+
+# Get coarse values from the vader sentiment and re-index to match the a,b range.
+df_sentiment_results['vader_binary'] = [x['compound'] > 0.5 for x in df_sentiment_vader['vader_scores']]
+df_sentiment_results['new_index'] = range(a,b)
+df_sentiment_results.set_index('new_index', inplace=True)
+
+# Inner join with the dataframe returned from the drop_neutral function. This has the indexes still, and
+# so it can be used with the inner join, and the adjusted indexes of the vader sentiments, to keep the appropriate
+# values.
+df_sentiment_results = pd.merge(df_sentiment_results, df_review_sub_bin, left_index=True, right_index=True)
+
+# Add predictions and convert vader values to integer booleans, re-order.
+df_sentiment_results['predictions'] = predictions
+df_sentiment_results['vader_binary'] = [x*1 for x in df_sentiment_results['vader_binary']]
+df_sentiment_results = df_sentiment_results.reindex(columns = ['text', 'stars', 'vader_binary', 'predictions'])

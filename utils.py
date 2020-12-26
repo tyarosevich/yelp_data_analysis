@@ -13,6 +13,7 @@ from keras.layers.core import Activation, Dropout, Dense
 from keras.layers import Flatten, LSTM, Conv1D, TimeDistributed, MaxPooling1D, GlobalMaxPooling1D
 from keras.layers.embeddings import Embedding
 from tensorflow.keras import regularizers
+from keras.preprocessing.sequence import pad_sequences
 
 
 #%% This simple setup code was taken from https://www.kaggle.com/vksbhandary/exploring-yelp-reviews-dataset`
@@ -160,3 +161,67 @@ def create_cnn_model(filters=32, kernel_size=4, activation='relu',
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])
     return model
 
+
+def load_df_subset(path, type, a, b, col_list):
+    '''
+    Returns a dataframe with a selected range of rows from a JSON file.
+    :param path: str
+        Path to a pickled dataframe or JSON file..
+    :param a: int
+        Starting index.
+    :param b: int
+        Ending index.
+    :param col_list: list
+        List of column headings (strings).
+    :return: DataFrame
+    '''
+    if type == 'pickle':
+        df = load_stuff(path)
+    elif type == 'JSON':
+        df = read_json(path)
+    else:
+        raise ValueError('Function only loads files of type "pickle" or "JSON".')
+
+    df = df[a:b]
+    df_subset = df[[c for c in df.columns if c in col_list]]
+    return df_subset
+
+def text_to_vectors(df, stop_set, max_len, Vocab = None):
+    '''
+    Takes in a dataframe of two columns, star ratings for a review and review text, and returns a numpy
+    matrix of the text reviews as rows of integer tokens, a numpy matrix of binary reviews and review text,
+    and a vocabulary dictionary of the tokens.
+    :param df: DataFrame
+        A dataframe of the stars and review text.
+    :param stop_set: set
+        The set of stop words.
+    :param max_len: int
+        Max tokenized review length.
+    :return: ndarray, ndarray, dict
+    '''
+    mat_sentiment_binary = df.to_numpy()
+    mat_sentiment_binary[:, 0] = (mat_sentiment_binary[:, 0] > 3) * 1
+    sent_list = list(mat_sentiment_binary[:, 1])
+    reviews_cleaned = [[word for word in word_tokenize(sent) if word not in stop_set] for sent in sent_list]
+    if Vocab == None:
+        Vocab = {'__PAD__': 0, '__</e>__': 1, '__UNK__': 2}
+
+        # Note that we build vocab using training data
+        for review in reviews_cleaned:
+            for word in review:
+                if word not in Vocab:
+                    Vocab[word] = len(Vocab)
+
+    print("Total words in vocab are", len(Vocab))
+    word_list_vec = [review_to_vector(list, Vocab, '__UNK__') for list in reviews_cleaned]
+    review_matrix = pad_sequences(word_list_vec, value=0, maxlen=max_len)
+    return review_matrix, mat_sentiment_binary, Vocab
+
+def drop_neutral(df):
+    '''
+    Drops 3 star reviews from the dataframe.
+    :param df: DataFrame
+    :return: DataFrame
+    '''
+    df_binary = df.drop(df[df['stars'] == 3].index)
+    return df_binary
