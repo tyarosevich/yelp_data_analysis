@@ -23,6 +23,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.wrappers.scikit_learn import KerasClassifier
 from tensorflow.keras import regularizers
 import timeit
+from scipy.stats import pointbiserialr
 
 
 
@@ -174,7 +175,55 @@ df_sentiment_results.set_index('new_index', inplace=True)
 # values.
 df_sentiment_results = pd.merge(df_sentiment_results, df_review_sub_bin, left_index=True, right_index=True)
 
-# Add predictions and convert vader values to integer booleans, re-order.
+# Add predictions and convert vader values to integer booleans, re-order, add some new columns.
 df_sentiment_results['predictions'] = predictions
 df_sentiment_results['vader_binary'] = [x*1 for x in df_sentiment_results['vader_binary']]
 df_sentiment_results = df_sentiment_results.reindex(columns = ['text', 'stars', 'vader_binary', 'predictions'])
+df_sentiment_results['true_binary'] = [(x > 3)*1 for x in df_sentiment_results['stars']]
+df_sentiment_results['review_length'] = [len(x) for x in df_sentiment_results['text']]
+#%%
+false_positives = 0
+fp_avg_length = 0
+false_negatives = 0
+fl_avg_length = 0
+correct = 0
+correct_avg_length = 0
+for i, row in df_sentiment_results.iterrows():
+    if row['true_binary'] == row['predictions']:
+        correct += 1
+        correct_avg_length += row['review_length']
+    elif row['true_binary'] - row['predictions'] == 1:
+        false_negatives += 1
+        fl_avg_length += row['review_length']
+    elif row['true_binary'] - row['predictions'] == -1:
+        false_positives += 1
+        fp_avg_length += row['review_length']
+
+fp_avg_length /= false_positives
+fl_avg_length /= false_negatives
+correct_avg_length /= correct
+
+
+#%% bar plot of false pos/neg
+x = ['Correct Predictions', 'False Positives', 'False Negatives']
+y = [correct, false_positives, false_negatives]
+sns.set_style("darkgrid")
+sns.barplot(x = x, y = y)
+plt.title("Breakdown of False Negative/Positives")
+plt.show()
+
+#%% Bar plot of average review length for true/false pos/neg
+sns.set_style("darkgrid")
+sns.barplot(x = x, y = [correct_avg_length, fp_avg_length, fl_avg_length])
+plt.title("Average Review Length By Classifier Result")
+plt.show()
+
+#%% Checking for correllation between review length and whether a correct
+# prediction was made.
+
+prediction_class = [i==j for i,j in zip(df_sentiment_results['predictions'], df_sentiment_results['true_binary'])]
+
+#%% Point Biserial Correlation. Result shows very little correlation between
+# review length and the accuracy of the classifier.
+
+biserial_corr = pointbiserialr(prediction_class, list(df_sentiment_results['review_length']))
