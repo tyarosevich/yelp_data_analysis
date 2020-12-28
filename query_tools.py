@@ -12,6 +12,8 @@ import os
 import timeit
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
+from importlib import reload
 
 #%%
 # Login info for my local MySQL db, stored in a .env file.
@@ -110,3 +112,23 @@ def top_ten_tag(tag, engine):
 #%% Testing
 
 df_top_seafood = top_ten_tag('seafood', engine)
+
+#%% Geospatial PCA
+
+# Get a large sample of geospatial data and stars
+
+query = 'SELECT latitude, longitude, stars FROM business LIMIT 10000'
+df_geo_dat = pd.read_sql(query, engine)
+
+#%%
+mat_geo = normalize(df_geo_dat.to_numpy().T, axis=0, norm='l1')
+#%%
+U, S, VH = np.linalg.svd(mat_geo)
+#%%
+# Singular value proportions
+sum = np.sum(S)
+sv_ratios=S/sum
+ax = sns.barplot(x=['$\sigma_1$', '$\sigma_2$', '$\sigma_3$'], y = sv_ratios, palette='Blues_d')
+plt.title('Proportion of variance captured by singular value')
+utils.change_width(ax, .35)
+plt.show()
