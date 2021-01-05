@@ -1,0 +1,4 @@
+Note that logging into mysql uses:
+
+mysql -u tyarosevich -p 
+password: @Exodus18

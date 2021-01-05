@@ -14,6 +14,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import normalize
 from importlib import reload
+import plotly.graph_objects as go
+from scipy.spatial.distance import jaccard
+
 
 #%%
 # Login info for my local MySQL db, stored in a .env file.
@@ -105,13 +108,16 @@ def top_ten_tag(tag, engine):
     %matplotlib
     sns.set_style("dark")
     sns.barplot(data=df_totals[0:10], y='city', x='cnt', palette='Blues_d')
-    plt.title('Total number of businesses in {} with of the category "{}"'.format(city, tag))
+    plt.title('Top ten cities for the business category "{}"'.format(tag))
     plt.show()
     return df_totals
 
 #%% Testing
 
 df_top_seafood = top_ten_tag('seafood', engine)
+
+#%% Save this dataframe for testing
+df_top_seafood.to_csv('test_df.csv')
 
 #%% Geospatial PCA
 
@@ -132,3 +138,62 @@ ax = sns.barplot(x=['$\sigma_1$', '$\sigma_2$', '$\sigma_3$'], y = sv_ratios, pa
 plt.title('Proportion of variance captured by singular value')
 utils.change_width(ax, .35)
 plt.show()
+#%%
+def get_top_jaccard(city, engine):
+    '''
+    Retrieves the top 5 Jaccard Similarity scores for businesses in the given city.
+    :param city: str
+    :param engine: Engine
+        sqlalchemy engine to query db
+    :return: dict
+    '''
+
+    # Queries the db for all businesses in the city and their attribute tags.
+    query = (
+        'SELECT '
+        'b.is_open, '
+        'ba.* '
+        'FROM business b '
+        'INNER JOIN business_attributes ba '
+        'ON ba.business_id = b.business_id '
+        'WHERE b.city = "{}";'.format(city)
+    )
+
+    # Reads into df and drops to numpy
+    df = pd.read_sql(query, engine)
+    mat = df.to_numpy()[:, np.r_[0, 2:19]]
+
+    # Reserves the 'is_open' value.
+    open_vec = mat[:, 0]
+
+    # Iterates over the columns of the attributes and calculates Jaccard similarity
+    # to the is_open column. Sorts top 5 and returns in format for plotly bar graph.
+    jacc_scores = 1 - np.asarray([jaccard(open_vec, mat[:, j]) for j in range(18)])
+    attr_names = np.asarray((df.columns)[2:])
+    idx = np.argsort(jacc_scores)[::-1]
+    jacc_sorted = jacc_scores[idx][0:5]
+    attr_sorted = attr_names[idx][0:5]
+    dict = {'Top 5 tags for open business': list(attr_sorted), 'Jaccard Similarity': list(jacc_sorted)}
+    return dict
+
+
+#%%
+city = 'Toronto'
+query = (
+    'SELECT '
+    'b.is_open, '
+    'ba.* '
+    'FROM business b '
+    'INNER JOIN business_attributes ba '
+    'ON ba.business_id = b.business_id '
+    'WHERE b.city = "{}";'.format(city)
+)
+df = pd.read_sql(query, engine)
+mat = df.to_numpy()[:, np.r_[0, 2:19]]
+open_vec = mat[:, 0]
+jacc_scores = 1 - np.asarray([jaccard(open_vec, mat[:, j]) for j in range(18)])
+attr_names = np.asarray((df.columns)[2:])
+idx = np.argsort(jacc_scores)[::-1]
+jacc_sorted=jacc_scores[idx]
+attr_sorted = attr_names[idx]
+dict = {'Top 5 tags for open business':list(attr_sorted), 'Jaccard Similarity':list(jacc_sorted)}

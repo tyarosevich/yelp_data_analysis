@@ -8,3 +8,6 @@ yelp_ERD.png
 keras_sentiment_model
 keras_sentiment_model_cnn
 *.h5
+*.png
+AWS_notes.txt
+*.csv

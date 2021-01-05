@@ -22,7 +22,7 @@ path_user = "data\yelp_archive\yelp_academic_dataset_user.json"
 path_checkin = "data\yelp_archive\yelp_academic_dataset_checkin.json"
 path_review = "data\yelp_archive\yelp_academic_dataset_review.json"
 
-df_review = utils.read_json(path_review)
+df_businesses = utils.read_json(path_business)
 
 #%% Test opening db
 
@@ -96,7 +96,7 @@ df_business_attributes['business_id'] = df_businesses['business_id']
 df_business_attributes.rename(columns = {'BusinessAcceptsBitcoin': 'businessAcceptsBitcoin','BusinessAcceptsCreditCards': 'businessAcceptsCreditCards', 'DogsAllowed':'dogsAllowed',
                                'WheelchairAccessible':'wheelchairAccessible'}, inplace = True)
 
-
+#%%
 # Add data to the business_attribute table in the db
 df_business_attributes.to_sql('business_attributes', con=engine, if_exists='append', index=False)
 #utils.insert_table(metadata, "business_attributes", engine, df_business_attributes)
