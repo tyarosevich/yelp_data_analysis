@@ -9,7 +9,7 @@ from importlib import reload
 from mysql.connector import errorcode
 from sqlalchemy import create_engine
 import pymysql
-from sqlalchemy import MetaData, Column, insert, Table
+from sqlalchemy import MetaData, Column, insert, Table, update
 from nltk.tokenize import word_tokenize
 import numpy as np
 import gc
@@ -41,19 +41,8 @@ cnx.close()
 # Creates a sqlalchmy engine for use throughout the project.
 engine = create_engine('mysql+pymysql://%s:%s@localhost/yelp_challengedb' %(user_login, pword_login), pool_recycle=3600, pool_size=5)
 
-# This metadata object collects the schema from the existing db.
-metadata = MetaData()
-metadata.reflect(bind=engine)
-
-# Confirmation of schema
-tables_dict = metadata.tables
-
-#%% Add data to the business table in the db and insert it with sqlalchemy.
-# In practice, the df.to_sql() function seems more practical, and anecdotally seems faster.
-# connection = engine.connect()
-
-# business = Table("business", metadata)
-# ins = business.insert(values = )
+#%%
+df_businesses.to_csv(path_or_buf="temp_table.csv", columns=['business_id', 'latitude', 'longitude'], float_format='%.8f', index=False)
 
 #%% Create a sub-dataframe to migrate the JSON info that already fits the schema.
 # Essentially, splits the data off that we will need to reformat for the schema,

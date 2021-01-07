@@ -71,3 +71,23 @@ test_dict = sub_bus_frame.to_dict('records')
 #%% Worked. The default columns are written to the db (but not the columns that need to be distributed).
 connection.execute(ins, test_dict)
 
+# This metadata object collects the schema from the existing db.
+metadata = MetaData()
+metadata.reflect(bind=engine)
+
+# Confirmation of schema
+tables_dict = metadata.tables
+
+#%%
+
+business_table = metadata.tables['business']
+sub_bus_frame = df_businesses.filter(['latitude', 'longitude']).copy()
+update_dict = sub_bus_frame.to_dict('records')
+
+#%% Update the longitude/latitude to accurate float values
+connection = engine.connect()
+upd = (
+    update(business_table)
+)
+
+connection.execute(upd, update_dict)

@@ -114,3 +114,45 @@ CONSTRAINT tip_to_user_id FOREIGN KEY (user_id)
 REFERENCES users (user_id) ON DELETE CASCADE
 ENGINE = InnoDB
 );
+
+/* Various queries*/
+
+SELECT
+b.name,
+b.is_open,
+ba.*
+FROM business b
+INNER JOIN business_attributes ba
+ON ba.business_id = b.business_id
+WHERE b.city = 'Toronto'
+LIMIT 10;
+
+CREATE TEMPORARY TABLE temp_table (
+business_id char(22) NOT NULL,
+latitude double,
+longitude double, 
+PRIMARY KEY (business_id))
+ENGINE = InnoDB;
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/temp_table.csv'
+INTO TABLE temp_table
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+(business_id, latitude, longitude);
+
+
+ALTER TABLE business
+modify latitude double;
+
+ALTER TABLE business
+modify longitude double;
+
+
+UPDATE business
+INNER JOIN temp_table on temp_table.business_id = business.business_id
+SET business.latitude = temp_table.latitude;
+
+UPDATE business
+INNER JOIN temp_table on temp_table.business_id = business.business_id
+SET business.longitude = temp_table.longitude;

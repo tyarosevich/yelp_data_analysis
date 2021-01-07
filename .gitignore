@@ -11,3 +11,4 @@ keras_sentiment_model_cnn
 *.png
 AWS_notes.txt
 *.csv
+*.ini
