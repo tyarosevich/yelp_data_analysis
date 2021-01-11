@@ -156,3 +156,56 @@ SET business.latitude = temp_table.latitude;
 UPDATE business
 INNER JOIN temp_table on temp_table.business_id = business.business_id
 SET business.longitude = temp_table.longitude;
+
+SELECT
+MONTH(r.date) AS mnths,
+COUNT(MONTH(r.date)) AS cnt
+FROM business b
+INNER JOIN review r
+ON r.business_id=b.business_id
+INNER JOIN business_category bc
+ON bc.business_id=r.business_id
+WHERE b.city='Toronto' AND bc.category_id=10
+GROUP BY  mnths
+ORDER BY mnths ASC
+LIMIT 10;
+
+SELECT 
+cr.category_name,
+count(bc.business_id) cnt
+FROM category_ref cr
+INNER JOIN business_category bc
+ON bc.category_id = cr.category_id
+GROUP BY bc.category_id
+ORDER BY cnt DESC
+LIMIT 50
+INTO OUTFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/drop_list.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n';
+
+CREATE TEMPORARY TABLE temp_cat_ref SELECT * FROM category_ref LIMIT 0;
+
+CREATE TEMPORARY TABLE temp_bus_cat SELECT * FROM business_category LIMIT 0;
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/temp_bus_cat.csv'
+INTO TABLE temp_bus_cat
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+(business_id, category_id);
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/temp_cat_ref.csv'
+INTO TABLE temp_cat_ref
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+(category_id, category_name);
+
+UPDATE category_ref
+INNER JOIN temp_cat_ref on temp_cat_ref.category_id = category_ref.category_id
+SET category_ref.category_name = temp_cat_ref.category_name;
+
+UPDATE business_category
+INNER JOIN temp_bus_cat on temp_bus_cat.business_id = business_category.business_id
+SET business_category.category_id = temp_bus_cat.category_id;

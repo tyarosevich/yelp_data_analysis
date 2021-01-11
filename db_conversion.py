@@ -97,15 +97,17 @@ category_data = list(filter(None, list(df_businesses['categories'])))
 
 # Split up each listed category and keep uniques.
 category_token_list = [x.split(',') for x in category_data]
-unique_tokens = set([x for sublist in category_token_list for x in sublist])
+unique_tokens = set([x.strip() for sublist in category_token_list for x in sublist])
 
-#%% Generate category ids, create df, and write to the db.
+#%% Generate category ids, create df, and write to csv for DB updating.
 token_id = np.arange(len(unique_tokens), dtype = int)
 
 df_category_ref = pd.DataFrame()
 df_category_ref['category_id'] = token_id
 df_category_ref['category_name'] = unique_tokens
-df_category_ref.to_sql('category_ref', con=engine, if_exists='append', index=False)
+
+#%%
+df_category_ref.to_csv(path_or_buf='temp_cat_ref.csv', columns=['category_id', 'category_name'], index=False)
 
 #%% Make a key value dict by name:id for the categories.
 cat_names = list(unique_tokens)
@@ -124,6 +126,7 @@ for index, row in df_businesses.iterrows():
     if row['categories'] == None:
         continue
     for cat in row['categories'].split(','):
+        cat = cat.strip()
         if cat in unique_tokens:
             cat_business_setup_list.append( [row['business_id'], category_keys[cat]])
 
@@ -131,9 +134,8 @@ for index, row in df_businesses.iterrows():
 headers = ['business_id', 'category_id']
 df_business_category = pd.DataFrame(cat_business_setup_list, columns=headers)
 
-# Write to the database. Not sure about this approach. Makes for an enormous table. But I suppose it
-# Might allow GROUP BY with categories.
-df_business_category.to_sql('business_category', con=engine, if_exists='append', index=False)
+# Write to csv to update the db. Way too big to write in with sqlalchemy (takes a long time).
+df_business_category.to_csv(path_or_buf='temp_bus_cat.csv', columns=['business_id', 'category_id'], index=False)
 
 #%% Separate friend column to different table.
 
