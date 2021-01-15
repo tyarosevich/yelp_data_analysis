@@ -4,7 +4,11 @@
 <img src="https://img.shields.io/badge/Keras%20-%23D00000.svg?&style=for-the-badge&logo=Keras&logoColor=white"/>
 
 # Analyzing the Yelp Challenge Data Set
-This project begins with the unstructured JSON files of the yelp data set, which includes user data and several million reviews, and proceeds through the creation of a structured database using python connectors and SQL, and subsequent visualization, analysis, and machine learning exploration of the data.
+This project begins with the unstructured JSON files of the yelp data set, which includes user data and several million reviews, and proceeds through the creation of a structured database using python connectors and SQL, and subsequent visualization, analysis, and machine learning exploration of the data. The dashboard resulting from this project can be found here:
+
+http://yelp-dashboard.eba-jpaf3bhg.us-east-2.elasticbeanstalk.com/
+
+The repo for this dashboard is [here](https://github.com/tyarosevich/yelp_data_analysis) on github.
 
 # Motivation
 This project's sole purpose is to display familiarity with the technology and methods intrinsic to Data Scientist and Data Analyst roles.
