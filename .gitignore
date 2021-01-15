@@ -12,3 +12,6 @@ keras_sentiment_model_cnn
 AWS_notes.txt
 *.csv
 *.ini
+*.png
+!yelp_workbench_erd.png
+notes_discarded_code.py
